@@ -17,15 +17,19 @@ const apiClient = Axios.create({
   headers: { Authorization: API_TOKEN },
 });
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({
+  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
+});
+
+let currentStatus;
 
 const updateStatus = async () => {
   const data = await apiClient.get(`/worlds/${WORLD_IDENTIFIER}`);
-  const status = `${data.data.message.players_current}/${data.data.message.players_maximum} (+${data.data.message.queue_current} | ${data.data.message.queue_wait_time_minutes} M)`;
+  currentStatus = `${data.data.message.players_current}/${data.data.message.players_maximum} (+${data.data.message.queue_current} | ${data.data.message.queue_wait_time_minutes} M)`;
   client.user.setPresence({
     activities: [
       {
-        name: status,
+        name: currentStatus,
         type: "WATCHING",
       },
     ],
@@ -39,5 +43,10 @@ client.once("ready", () => {
   setInterval(updateStatus, REFRESH_RATE * 1000);
 });
 
-// Login to Discord with your client's token
+client.on("messageCreate", async (message) => {
+  if (message.content.toLowerCase() == "!pop" && !message.author.bot) {
+    message.reply(`Current population status: \`${currentStatus}\``);
+  }
+});
+
 client.login(BOT_TOKEN);
